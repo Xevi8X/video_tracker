@@ -1,96 +1,85 @@
 import cv2
-from enum import Enum
+import numpy as np
+from video_tracker import VideoTracker, TrackingState
 
-class TrackingState(Enum):
-    TRACKING = 1
-    SEARCHING = 2
-    TARGET_LOST = 3
-
-class VideoTracker:
-
-    def __init__(self):
-        self.__create_tracker()
-        self.cap = cv2.VideoCapture(0)
-        self.bbox = None
-        self.search_limit = 60
-
-    def start_tracking(self, frame, bbox):
-        self.searching_counter = 0
-        self.last_bbox = bbox
-        self.tracker.init(frame, bbox)
-        return self.last_bbox
-
-    def update_tracking(self, frame):
-        result, bbox = self.tracker.update(frame)
-        if not result:
-            self.searching_counter += 1
-
-            if self.searching_counter > self.search_limit:
-                return TrackingState.TARGET_LOST, None
-
-            return TrackingState.SEARCHING, self.last_bbox
-
-        self.searching_counter = 0
-        self.last_bbox = bbox
-        return TrackingState.TRACKING, bbox
-
-    def __create_tracker(self):
-        # self.tracker = cv2.legacy.TrackerMOSSE_create()
-        self.tracker = cv2.legacy.TrackerKCF_create()
-        # self.tracker = cv2.legacy.TrackerCSRT_create()
-        # self.tracker = cv2.legacy.TrackerBoosting_create()
-        # self.tracker = cv2.legacy.TrackerMedianFlow_create()
-        # self.tracker = cv2.legacy.TrackerTLD_create()
-        # self.tracker = cv2.legacy.TrackerMIL_create()
-        # self.tracker = cv2.legacy.TrackerGOTURN_create()
-
-
-
-# Camera setting
-cap = cv2.VideoCapture(0)
+# Input setting
+# cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture("rtsp://localhost:8554/example")
 if not cap.isOpened():
     print("Could not open webcam")
     exit()
 for _ in range(5):    
     ret, frame = cap.read()
     if not ret:
-        print("Failed to read from webcam")
+        print("Failed to read")
         cap.release()
         exit()
 
-bbox = cv2.selectROI("Select ROI", frame, fromCenter=False, showCrosshair=False)
-cv2.destroyWindow("Select ROI")
+frame_size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+print(f"Frame size: {frame_size[0]}x{frame_size[1]}")
 
-tracker = VideoTracker()
-tracker.start_tracking(frame, bbox)
+# bbox = cv2.selectROI("Select ROI", frame, fromCenter=False, showCrosshair=False)
+# cv2.destroyWindow("Select ROI")
+
+tracker = VideoTracker(frame_size)
+# tracker.start_tracking(frame, bbox)
+
+last_frame = None
+click_pos = None
+a = 40
+correction_diff = 3
+
+def mouse_event(event, x, y, flags, param):
+    global click_pos
+    if event == cv2.EVENT_LBUTTONDOWN:
+        click_pos = (x,y)
+        # print(f'Clicked {x}, {y}')
+
+cv2.namedWindow("Tracking")
+cv2.setMouseCallback("Tracking", mouse_event)
 
 while True:
+    # Mouse handling
+    if not click_pos is None and not last_frame is None :
+        x = np.clip(click_pos[0], a, frame_size[0] - a)
+        y = np.clip(click_pos[1], a, frame_size[1] - a)
+        tracker.start_tracking(last_frame, (x - a, y - a, 2*a, 2*a))
+        click_pos = None
+
+    # Keyboard handling
+    key = cv2.waitKey(1) & 0xFF
+    if key == ord('q'):
+        break
+    elif key == 81:  # Left arrow key
+        tracker.correct_target(-correction_diff, 0)
+    elif key == 82:  # Up arrow key
+        tracker.correct_target(0, -correction_diff)
+    elif key == 83:  # Right arrow key
+        tracker.correct_target(correction_diff, 0)
+    elif key == 84:  # Down arrow key
+        tracker.correct_target(0, correction_diff)
+
+    # Read frame
     ret, frame = cap.read()
     if not ret:
         break
+    last_frame = frame
 
     state, bbox = tracker.update_tracking(frame)
+    print(bbox)
 
     if state == TrackingState.TRACKING:
         color = (0, 255, 0)
     elif state == TrackingState.SEARCHING:
         color = (0, 255, 255)
-    elif state == TrackingState.TARGET_LOST:
-        color = None
     else:
         color = None
-
     if color:
         p1 = (int(bbox[0]), int(bbox[1]))
         p2 = (int(bbox[0] + bbox[2]), int(bbox[1] + bbox[3]))
         cv2.rectangle(frame, p1, p2, color, 2, 1)
 
     cv2.imshow("Tracking", frame)
-
-    # Keyboard handling
-    key = cv2.waitKey(1) & 0xFF
-    if key == ord('q'):
-        break
 
 cap.release()
 cv2.destroyAllWindows()
