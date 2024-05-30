@@ -57,6 +57,19 @@ class VideoTracker:
         b = self.last_bbox[3]
         self.last_bbox = (x, y, a, b)
         self.start_tracking(self.last_frame, self.last_bbox)
+
+    def resize_target(self, d_left, d_right, d_top, d_bottom):
+        if self.state != TrackingState.TRACKING:
+            return
+        x = self.last_bbox[0] - d_left
+        y = self.last_bbox[1] - d_top
+        a = self.last_bbox[2] + d_left + d_right
+        b = self.last_bbox[3] + d_top + d_bottom
+        bbox = (x, y, a, b)
+        if not self.__check_bbox(bbox):
+            return
+        self.last_bbox = bbox
+        self.start_tracking(self.last_frame, self.last_bbox)
         
     def __create_tracker(self):
         # self.tracker = cv2.legacy.TrackerMOSSE_create()

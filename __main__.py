@@ -26,7 +26,8 @@ if __name__ == "__main__":
     last_frame = None
     click_pos = None
     a = 40
-    correction_diff = 3
+    correction_diff = 5
+    resize_diff = 5
     cv2.namedWindow("Tracking", cv2.WND_PROP_FULLSCREEN)
     cv2.setWindowProperty("Tracking", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
@@ -56,15 +57,19 @@ if __name__ == "__main__":
 
         # Keyboard handling
         key = cv2.waitKey(1) & 0xFF
-        if key == ord('q'):
+        if key == 27:  # Esc key
             break
-        elif key == 81:  # Left arrow key
+        elif key == ord('q'):
+            tracker.resize_target(-resize_diff, -resize_diff, -resize_diff, -resize_diff)
+        elif key == ord('e'):
+            tracker.resize_target(resize_diff, resize_diff, resize_diff, resize_diff)
+        elif key in [81, ord('a')]:  # Left arrow key
             tracker.correct_target(-correction_diff, 0)
-        elif key == 82:  # Up arrow key
+        elif key in [82, ord('w')]:  # Up arrow key
             tracker.correct_target(0, -correction_diff)
-        elif key == 83:  # Right arrow key
+        elif key in [83, ord('d')]:  # Right arrow key
             tracker.correct_target(correction_diff, 0)
-        elif key == 84:  # Down arrow key
+        elif key in [84, ord('s')]:  # Down arrow key
             tracker.correct_target(0, correction_diff)
 
         # Read frame
