@@ -72,8 +72,8 @@ class VideoTracker:
         self.start_tracking(self.last_frame, self.last_bbox)
         
     def __create_tracker(self):
-        # self.tracker = cv2.legacy.TrackerMOSSE_create()
-        self.tracker = cv2.legacy.TrackerKCF_create()
+        self.tracker = cv2.legacy.TrackerMOSSE_create()
+        # self.tracker = cv2.legacy.TrackerKCF_create()
         # self.tracker = cv2.legacy.TrackerCSRT_create()
         # self.tracker = cv2.legacy.TrackerBoosting_create()
         # self.tracker = cv2.legacy.TrackerMedianFlow_create()
@@ -82,4 +82,9 @@ class VideoTracker:
         # self.tracker = cv2.legacy.TrackerGOTURN_create()
 
     def __check_bbox(self, bbox):
-        return bbox[2] > self.minimal_roi_size and bbox[3] > self.minimal_roi_size
+        return bbox[0] >= 0 \
+            and bbox[1] >= 0 \
+            and bbox[0] + bbox[2] <= self.frame_size[0] \
+            and bbox[1] + bbox[3] <= self.frame_size[1] \
+            and bbox[2] > self.minimal_roi_size \
+            and bbox[3] > self.minimal_roi_size
