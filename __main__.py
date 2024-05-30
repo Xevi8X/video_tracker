@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import time
 from video_tracker import VideoTracker, TrackingState
 
 if __name__ == "__main__":
@@ -25,6 +26,8 @@ if __name__ == "__main__":
 
     last_frame = None
     click_pos = None
+    last_time = time.time()
+    fps = 0
     a = 40
     correction_diff = 5
     resize_diff = 5
@@ -45,9 +48,8 @@ if __name__ == "__main__":
     # cv2.destroyWindow("Select ROI")
     # tracker.start_tracking(frame, bbox)
 
-
     ### Main loop
-    while True:
+    while (cap.isOpened()):
         # Mouse handling
         if not click_pos is None and not last_frame is None :
             x = np.clip(click_pos[0], a, frame_size[0] - a)
@@ -80,6 +82,7 @@ if __name__ == "__main__":
 
         state, bbox = tracker.update_tracking(frame)
 
+        # Draw bounding box
         if state == TrackingState.TRACKING:
             color = (0, 255, 0)
         elif state == TrackingState.SEARCHING:
@@ -90,6 +93,13 @@ if __name__ == "__main__":
             p1 = (int(bbox[0]), int(bbox[1]))
             p2 = (int(bbox[0] + bbox[2]), int(bbox[1] + bbox[3]))
             cv2.rectangle(frame, p1, p2, color, 2, 1)
+
+        # Calculate fps
+        now = time.time() 
+        fps_raw = 1 / (now - last_time)
+        last_time = now
+        fps = 0.9 * fps + 0.1 * fps_raw
+        cv2.putText(frame, f"{round(fps):.0f}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
 
         cv2.imshow("Tracking", frame)
 
