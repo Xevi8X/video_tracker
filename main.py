@@ -66,7 +66,6 @@ while True:
     last_frame = frame
 
     state, bbox = tracker.update_tracking(frame)
-    print(bbox)
 
     if state == TrackingState.TRACKING:
         color = (0, 255, 0)
